@@ -1,4 +1,4 @@
-name: Flutter Auto-Rebuild & Build APK
+name: Flutter Force-Rebuild & Build APK
 
 on:
   workflow_dispatch:
@@ -22,42 +22,22 @@ jobs:
         run: flutter pub get || true
 
       ##########################################################
-      # ساخت پروژه جدید با قالب آپدیت و انتقال کدها
+      # حذف کامل اندروید و ساخت مجدد
       ##########################################################
-      - name: Rebuild Android project if unsupported
+      - name: Always rebuild Android project
         run: |
-          echo "Checking android project..."
-          if ! [ -f "android/build.gradle" ]; then
-            echo "⚠️ Android project missing, recreating..."
-            flutter create -t app temp_new_app
-            # انتقال کدها
-            rm -rf temp_new_app/lib
-            cp -r lib temp_new_app/lib
-            cp pubspec.yaml temp_new_app/pubspec.yaml
-            if [ -d "assets" ]; then
-              cp -r assets temp_new_app/assets
-            fi
-            # جایگزینی پروژه
-            rm -rf android
-            mv temp_new_app/android android
-            rm -rf temp_new_app
-          else
-            if grep -q "Unsupported Gradle project" android/build.gradle; then
-              echo "⚠️ Detected unsupported Gradle project, recreating..."
-              flutter create -t app temp_new_app
-              rm -rf temp_new_app/lib
-              cp -r lib temp_new_app/lib
-              cp pubspec.yaml temp_new_app/pubspec.yaml
-              if [ -d "assets" ]; then
-                cp -r assets temp_new_app/assets
-              fi
-              rm -rf android
-              mv temp_new_app/android android
-              rm -rf temp_new_app
-            else
-              echo "✅ Android project seems fine."
-            fi
+          echo "♻ Recreating android folder..."
+          rm -rf android
+          flutter create -t app temp_new_app
+          # انتقال کد
+          rm -rf temp_new_app/lib
+          cp -r lib temp_new_app/lib
+          cp pubspec.yaml temp_new_app/pubspec.yaml
+          if [ -d "assets" ]; then
+            cp -r assets temp_new_app/assets
           fi
+          mv temp_new_app/android android
+          rm -rf temp_new_app
 
       ##########################################################
       # Build APK Release
