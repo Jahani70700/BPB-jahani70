@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Flutter Build APK
 
 on:
   workflow_dispatch:
@@ -9,23 +9,47 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4   # نسخه جدیدتر
+        uses: actions/checkout@v4
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.3'
           channel: 'stable'
-          cache: true  # سرعت بیلد بالاتر
+          cache: true
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build APK (release)
-        run: flutter build apk --release
+      ##########################################################
+      # Option A - Disable google-services plugin (temporary)
+      ##########################################################
+      - name: Disable google-services plugin (temp)
+        run: |
+          echo "Checking for google-services plugin in android/app/build.gradle..."
+          if grep -q "apply plugin: 'com.google.gms.google-services'" android/app/build.gradle; then
+            echo "Commenting google-services plugin in android/app/build.gradle"
+            cp android/app/build.gradle android/app/build.gradle.ci_backup
+            sed -i "s@apply plugin: 'com.google.gms.google-services'@//apply plugin: 'com.google.gms.google-services'@" android/app/build.gradle || true
+          else
+            echo "No google-services plugin found in android/app/build.gradle"
+          fi
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4   # نسخه جدید
-        with:
-          name: app-release.apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          if grep -q "com.google.gms:google-services" android/build.gradle; then
+            echo "Commenting google-services classpath in android/build.gradle"
+            cp android/build.gradle android/build.gradle.ci_backup || true
+            sed -i "s@classpath 'com.google.gms:google-services:[^']*'@//classpath 'com.google.gms:google-services'@" android/build.gradle || true
+          else
+            echo "No google-services classpath found in android/build.gradle"
+          fi
+
+      ##########################################################
+      # Option B - Collect diagnostics before build
+      ##########################################################
+      - name: Env & Versions
+        run: |
+          echo "=== flutter --version ==="
+          flutter --version || true
+          echo "=== flutter doctor -v ==="
+          flutter doctor -v || true
+          echo "=== java -
