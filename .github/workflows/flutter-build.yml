@@ -1,4 +1,4 @@
-name: Flutter Build APK
+name: Flutter Build APK (No Google Services)
 
 on:
   workflow_dispatch:
@@ -22,34 +22,37 @@ jobs:
         run: flutter pub get
 
       ##########################################################
-      # Option A - Disable google-services plugin (temporary)
+      # حذفی کامل google-services از تمامی فایل‌ها
       ##########################################################
-      - name: Disable google-services plugin (temp)
+      - name: Disable ALL google-services refs
         run: |
-          echo "Checking for google-services plugin in android/app/build.gradle..."
-          if grep -q "apply plugin: 'com.google.gms.google-services'" android/app/build.gradle; then
-            echo "Commenting google-services plugin in android/app/build.gradle"
-            cp android/app/build.gradle android/app/build.gradle.ci_backup
-            sed -i "s@apply plugin: 'com.google.gms.google-services'@//apply plugin: 'com.google.gms.google-services'@" android/app/build.gradle || true
+          echo "Searching for any reference to google-services in project..."
+          MATCHES=$(grep -R "google-services" . || true)
+          if [ -n "$MATCHES" ]; then
+            echo "Found google-services references:"
+            echo "$MATCHES"
+            echo "Commenting out google-services in all gradle files..."
+            grep -Rl "google-services" . | grep "\.gradle" | while read f; do
+              echo "Processing $f"
+              cp "$f" "$f.ci_backup"
+              sed -i "s@apply plugin: 'com.google.gms.google-services'@//apply plugin: 'com.google.gms.google-services'@g" "$f" || true
+              sed -i "s@classpath 'com.google.gms:google-services:[^']*'@//classpath 'com.google.gms:google-services'@g" "$f" || true
+            done
           else
-            echo "No google-services plugin found in android/app/build.gradle"
+            echo "No google-services reference found."
           fi
 
-          if grep -q "com.google.gms:google-services" android/build.gradle; then
-            echo "Commenting google-services classpath in android/build.gradle"
-            cp android/build.gradle android/build.gradle.ci_backup || true
-            sed -i "s@classpath 'com.google.gms:google-services:[^']*'@//classpath 'com.google.gms:google-services'@" android/build.gradle || true
-          else
-            echo "No google-services classpath found in android/build.gradle"
-          fi
-
       ##########################################################
-      # Option B - Collect diagnostics before build
+      # Build APK
       ##########################################################
-      - name: Env & Versions
+      - name: Build APK (verbose)
         run: |
-          echo "=== flutter --version ==="
-          flutter --version || true
-          echo "=== flutter doctor -v ==="
-          flutter doctor -v || true
-          echo "=== java -
+          flutter clean
+          flutter pub get --verbose
+          flutter build apk --release -v
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
