@@ -27,7 +27,7 @@ jobs:
       - name: Full Android rebuild
         run: |
           rm -rf android
-          flutter create .
+          flutter create --project-name bpb_jahani70 .
           sed -i 's/minSdkVersion [0-9]\+/minSdkVersion 21/' android/app/build.gradle
 
       - run: flutter clean
@@ -35,3 +35,6 @@ jobs:
       - run: flutter build apk --release -v
 
       - uses: actions/upload-artifact@v4
+        with:
+          name: app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
