@@ -1,4 +1,4 @@
-name: Flutter Force-Rebuild & Build APK
+name: Flutter Safe-Rebuild & Build APK
 
 on:
   workflow_dispatch:
@@ -8,28 +8,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.3'
           channel: 'stable'
           cache: true
 
-      - name: Install dependencies
-        run: flutter pub get || true
+      - run: flutter pub get || true
 
-      ##########################################################
-      # حذف کامل اندروید و ساخت مجدد
-      ##########################################################
-      - name: Always rebuild Android project
+      - name: Rebuild Android Project (Safe Mode)
         run: |
-          echo "♻ Recreating android folder..."
+          echo "♻ Removing old android folder..."
           rm -rf android
+          echo "📦 Creating new android project..."
           flutter create -t app temp_new_app
-          # انتقال کد
           rm -rf temp_new_app/lib
           cp -r lib temp_new_app/lib
           cp pubspec.yaml temp_new_app/pubspec.yaml
@@ -38,18 +32,23 @@ jobs:
           fi
           mv temp_new_app/android android
           rm -rf temp_new_app
+          
+          echo "🛠 Adjusting Gradle settings..."
+          # Set Gradle & AGP versions
+          sed -i 's/com.android.application.*/com.android.application version "8.1.0"/' android/build.gradle || true
+          sed -i 's/kotlin("android").*/id("org.jetbrains.kotlin.android") version "1.8.22"/' android/build.gradle || true
+          
+          # Remove google-services plugin if present
+          sed -i '/com.google.gms.google-services/d' android/app/build.gradle || true
 
-      ##########################################################
-      # Build APK Release
-      ##########################################################
-      - name: Build APK
-        run: |
-          flutter clean
-          flutter pub get
-          flutter build apk --release -v
+          # Ensure minSdkVersion is at least 21
+          sed -i 's/minSdkVersion [0-9]\+/minSdkVersion 21/' android/app/build.gradle
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+      - run: flutter clean
+      - run: flutter pub get
+      - run: flutter build apk --release -v
+
+      - uses: actions/upload-artifact@v4
         with:
           name: app-release.apk
           path: build/app/outputs/flutter-apk/app-release.apk
