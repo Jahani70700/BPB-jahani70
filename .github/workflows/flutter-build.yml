@@ -1,4 +1,4 @@
-name: Flutter Ultra-Min Build Test
+name: Flutter Ultra-Min Build Stable
 
 on:
   workflow_dispatch:
@@ -10,31 +10,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.24.3'
           channel: 'stable'
           cache: true
 
-      - name: Wipe all dependencies except flutter
+      - name: Minimal pubspec.yaml
         run: |
-          echo "name: bpb_jahani70" > pubspec_min.yaml
-          echo "description: Temp minimal build" >> pubspec_min.yaml
-          echo "version: 1.0.0+1" >> pubspec_min.yaml
-          echo "environment:" >> pubspec_min.yaml
-          echo "  sdk: '^3.5.0'" >> pubspec_min.yaml
-          echo "" >> pubspec_min.yaml
-          echo "dependencies:" >> pubspec_min.yaml
-          echo "  flutter:" >> pubspec_min.yaml
-          echo "    sdk: flutter" >> pubspec_min.yaml
-          mv pubspec_min.yaml pubspec.yaml
+          echo "name: bpb_jahani70" > pubspec.yaml
+          echo "description: Temp minimal build" >> pubspec.yaml
+          echo "version: 1.0.0+1" >> pubspec.yaml
+          echo "environment:" >> pubspec.yaml
+          echo "  sdk: '^3.5.0'" >> pubspec.yaml
+          echo "" >> pubspec.yaml
+          echo "dependencies:" >> pubspec.yaml
+          echo "  flutter:" >> pubspec.yaml
+          echo "    sdk: flutter" >> pubspec.yaml
 
       - run: flutter pub get
 
-      - name: Full Android rebuild
+      - name: Full Android rebuild with stable AGP
         run: |
           rm -rf android
           flutter create --project-name bpb_jahani70 .
+          # تغییر نسخه AGP و Kotlin در build.gradle
+          sed -i 's/com.android.tools.build:gradle:[0-9.]\+/com.android.tools.build:gradle:7.4.2/' android/build.gradle
+          sed -i 's/ext.kotlin_version = "[0-9.]\+"/ext.kotlin_version = "1.9.10"/' android/build.gradle
           sed -i 's/minSdkVersion [0-9]\+/minSdkVersion 21/' android/app/build.gradle
 
       - run: flutter clean
