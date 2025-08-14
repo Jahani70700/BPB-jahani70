@@ -1,4 +1,4 @@
-name: Flutter Ultra-Clean Build Test
+name: Flutter Ultra-Min Build Test
 
 on:
   workflow_dispatch:
@@ -16,11 +16,13 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Remove Android-heavy plugins from pubspec
+      - name: Wipe all dependencies except flutter
         run: |
-          cp pubspec.yaml pubspec_backup.yaml
-          grep -v -E "firebase|google_sign_in|flutter_local_notifications|path_provider_android|shared_preferences_android" pubspec.yaml > temp.yaml
-          mv temp.yaml pubspec.yaml
+          grep -E "name:|description:|version:|environment:" pubspec.yaml > pubspec_min.yaml
+          echo "dependencies:" >> pubspec_min.yaml
+          echo "  flutter:" >> pubspec_min.yaml
+          echo "    sdk: flutter" >> pubspec_min.yaml
+          mv pubspec_min.yaml pubspec.yaml
 
       - run: flutter pub get
 
@@ -31,7 +33,6 @@ jobs:
           sed -i 's/minSdkVersion [0-9]\+/minSdkVersion 21/' android/app/build.gradle
 
       - run: flutter clean
-      - run: flutter pub get
       - run: flutter build apk --release -v
 
       - uses: actions/upload-artifact@v4
