@@ -18,7 +18,12 @@ jobs:
 
       - name: Wipe all dependencies except flutter
         run: |
-          grep -E "name:|description:|version:|environment:" pubspec.yaml > pubspec_min.yaml
+          echo "name: bpb_jahani70" > pubspec_min.yaml
+          echo "description: Temp minimal build" >> pubspec_min.yaml
+          echo "version: 1.0.0+1" >> pubspec_min.yaml
+          echo "environment:" >> pubspec_min.yaml
+          echo "  sdk: '^3.5.0'" >> pubspec_min.yaml
+          echo "" >> pubspec_min.yaml
           echo "dependencies:" >> pubspec_min.yaml
           echo "  flutter:" >> pubspec_min.yaml
           echo "    sdk: flutter" >> pubspec_min.yaml
