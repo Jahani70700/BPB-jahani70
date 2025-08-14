@@ -1,53 +1,30 @@
-name: Flutter Ultra-Min Build Stable
+name: Build APK
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
 
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.24.3'
-          channel: 'stable'
-          cache: true
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
 
-      - name: Minimal pubspec.yaml
-        run: |
-          echo "name: bpb_jahani70" > pubspec.yaml
-          echo "description: Temp minimal build" >> pubspec.yaml
-          echo "version: 1.0.0+1" >> pubspec.yaml
-          echo "environment:" >> pubspec.yaml
-          echo "  sdk: '^3.5.0'" >> pubspec.yaml
-          echo "" >> pubspec.yaml
-          echo "dependencies:" >> pubspec.yaml
-          echo "  flutter:" >> pubspec.yaml
-          echo "    sdk: flutter" >> pubspec.yaml
+    - name: Build with Gradle
+      run: ./gradlew assembleDebug
 
-      - run: flutter pub get
-
-      - name: Full Android rebuild with stable AGP
-        run: |
-          rm -rf android
-          flutter create --project-name bpb_jahani70 .
-          # تغییر نسخه AGP و Kotlin در build.gradle
-          sed -i 's/com.android.tools.build:gradle:[0-9.]\+/com.android.tools.build:gradle:7.4.2/' android/build.gradle
-          sed -i 's/ext.kotlin_version = "[0-9.]\+"/ext.kotlin_version = "1.9.10"/' android/build.gradle
-          sed -i 's/minSdkVersion [0-9]\+/minSdkVersion 21/' android/app/build.gradle
-
-      - run: flutter clean
-      - run: flutter build apk --release -v
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: app-release.apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: app-debug.apk
+        path: app/build/outputs/apk/debug/app-debug.apk
